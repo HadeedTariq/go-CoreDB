@@ -1,7 +1,11 @@
 package core
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"hash/crc32"
+	"math/rand"
 	"os"
 	"path/filepath"
 )
@@ -30,6 +34,9 @@ func SaveData(path string, data []byte) error {
 
 }
 
+func randomInt() int {
+	return rand.Int()
+}
 func SaveData2(path string, data []byte) (string, error) {
 	tmp := fmt.Sprintf("%s.tmp.%d", path, randomInt())
 
@@ -71,3 +78,27 @@ func SaveData2(path string, data []byte) (string, error) {
 
 	return tmp, nil
 }
+
+// ~ so how basicaklly the log writer work out is it basiaclly take a fd and also the data and then also perform  some check sums
+
+func LogWriter(fs *os.File, data []byte) error {
+	size := uint32(len(data))
+
+	buf := new(bytes.Buffer)
+
+	// ~ we also have to perform the crc check for the validation
+	check := crc32.ChecksumIEEE(data)
+
+	binary.Write(buf, binary.LittleEndian, size)
+	binary.Write(buf, binary.LittleEndian, check)
+
+	buf.Write(data)
+
+	_, err := fs.Write(buf.Bytes())
+
+	return err
+}
+
+// ~ bloom filter implementation
+
+var arr = make([]int, 0, 10)
